@@ -37,7 +37,7 @@ Inspired by [Spec-Driven Development: AI Assisted Coding Explained](https://www.
 
 Conducts a structured Q&A session to surface every functional requirement, constraint, and open question before design begins. Nothing is assumed. The session ends only when the requirements are unambiguous and complete.
 
-**Output:** A `requirements.md` document covering goals, user stories, acceptance criteria, constraints, and out-of-scope items.
+**Output:** `docs/ddd_requirement/REQ_<descriptive_suffix>.md` (unless the session specifies another path) — goals, user stories, acceptance criteria, constraints, and out-of-scope items.
 
 ---
 
@@ -45,8 +45,8 @@ Conducts a structured Q&A session to surface every functional requirement, const
 
 Takes the requirements document and walks through every meaningful implementation decision via Q&A. Produces Mermaid diagrams for architecture, data flow, and sequence where helpful. Design remains simple — no over-engineering.
 
-**Input:** `requirements.md`  
-**Output:** A `design.md` document with component diagrams, data models, API contracts, and rationale for each decision.
+**Input:** The requirements file from phase 1 (path passed via `Skill`, or `docs/ddd_requirement/REQ_*.md`)  
+**Output:** A `docs/ddd_design/DES_<descriptive_suffix>.md` document with component diagrams, data models, API contracts, and rationale for each decision.
 
 ---
 
@@ -54,8 +54,8 @@ Takes the requirements document and walks through every meaningful implementatio
 
 Decomposes the design into a granular, dependency-ordered list of tasks. Each task targets a diff of 50–200 lines — small enough to review confidently, large enough to be meaningful.
 
-**Input:** `design.md`  
-**Output:** A `checklist.md` with tasks ordered by dependency, each scoped to a single coherent change.
+**Input:** `docs/ddd_design/DES_<descriptive_suffix>.md`
+**Output:** A `docs/ddd_checklist/CL_<descriptive_suffix>.md` with tasks ordered by dependency, each scoped to a single coherent change.
 
 ---
 
@@ -63,7 +63,7 @@ Decomposes the design into a granular, dependency-ordered list of tasks. Each ta
 
 Picks the next unblocked task from the checklist, implements it fully, then pauses for your review and approval before continuing. No task is started until the previous one is approved.
 
-**Input:** `checklist.md`  
+**Input:** `docs/ddd_checklist/CL_<descriptive_suffix>.md`
 **Output:** Code changes committed one task at a time, with the checklist updated after each approval.
 
 ---

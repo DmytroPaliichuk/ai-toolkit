@@ -1,105 +1,88 @@
-# ddd-des — Design
+---
+name: ddd_des
+description: "Claude Code only: translate locked requirements into a concrete design via structured Q&A (needs AskUserQuestion + Skill tools). Use after /ddd_req; run before /ddd_cl."
+metadata:
+  author: Dmytro Paliichuk
+---
 
-Translate an approved `requirements.md` into a concrete technical design document through a structured decision-making Q&A, producing `design.md` with diagrams.
+# Design
 
-## When to use
+Translate the requirements document into a concrete design through structured Q&A on meaningful implementation decisions. The author drives architecture and tradeoffs instead of reviewing the model’s autonomous choices after the fact. Keep the design as simple as the requirements allow — no over-engineering.
 
-Invoke `/ddd_des` after `/ddd_req` has produced an approved `requirements.md`. Do not proceed to `/ddd_cl` until this phase is complete and the user has confirmed the design document.
+**Environment:** This skill targets **Claude Code** with the **AskUserQuestion** and **Skill** tools (plugin workflow). If those tools are not available, stop and say this phase requires Claude Code with DDD plugin tools enabled — do not pretend the same UX in a plain chat.
+
+## When to Use
+
+- After `/ddd_req` has produced a requirements doc (requirements must be locked before design)
+- Before running `/ddd_cl` — the checklist depends on an agreed design
 
 ## Instructions
 
-1. **Read `requirements.md`.** Parse the requirements before asking any questions. Identify the key design decisions that need to be made.
+When invoked, design the functionality described by the **requirements document**. Its path is passed via the **`Skill`** tool when continuing from `/ddd_req`, or find it at **`docs/ddd_requirement/REQ_*.md`** (or another path the author gave in the prompt).
 
-2. **Present the decision list.** Show the user a numbered list of the design decisions you identified. Ask if anything is missing before proceeding.
+Before detailed questions, read the relevant parts of the codebase to understand existing patterns, structures, and code you can reuse. Do not ask the author for information you can resolve by reading the code.
 
-3. **Work through each decision via Q&A.** For each decision:
-   - State the decision clearly (e.g., "How should authentication tokens be stored?").
-   - Offer 2–3 concrete options with a one-line tradeoff for each.
-   - Ask the user to choose or propose an alternative.
-   - Record the decision and the rationale.
+Start by summarizing your understanding of scope and constraints from the requirements doc in 2–3 sentences. Then use `AskUserQuestion` to confirm that interpretation before drilling into design decisions. Offer options such as "Yes, that's correct", "Partially correct — let me clarify", and "No, that's off — let me re-explain".
 
-   Work through decisions in this order:
-   - **Architecture** — Overall structure, layers, deployment model.
-   - **Data model** — Entities, relationships, schemas, storage technology.
-   - **API contracts** — Endpoints, request/response shapes, error codes.
-   - **Component responsibilities** — What each module/service does and does not own.
-   - **External integrations** — How third-party systems are called and failure is handled.
-   - **Error handling and edge cases** — What happens when things go wrong.
-   - **Security** — Authentication, authorization, data protection, input validation.
-   - **Observability** — Logging, metrics, tracing, alerting.
+The design must stay within the requirements scope. Respect **Out of Scope** — do not design excluded work.
 
-4. **Generate diagrams.** After decisions are made, produce Mermaid diagrams as appropriate:
-   - Architecture diagram (component/C4 style)
-   - Data model (entity-relationship or class diagram)
-   - Key sequence diagrams for non-obvious flows
+Before writing the design doc, surface **every meaningful implementation decision** through Q&A with the author (stack, boundaries, data model shape, API contracts, error handling strategy, etc.). Requirements already captured **what** and **why**; here you nail **how** at the architecture/API level.
 
-5. **Draft `design.md`.** Produce the document using the structure below. Present it to the user and ask for confirmation or corrections.
+Ask one question at a time. Follow-up questions may depend on earlier answers, so do not batch them.
 
-6. **Iterate until approved.** Apply any corrections and re-present. Repeat until the user explicitly approves.
+### Discrete choices (`AskUserQuestion`)
 
-7. **Signal completion.** When approved, tell the user: "Design is complete. Run `/ddd_cl` to generate the implementation checklist."
+For questions with discrete choices, use `AskUserQuestion` so the author gets selectable options and arrow-key navigation. Only list options that are genuinely on the table — do not pad. Two strong options beat two strong plus two filler. The tool includes an **Other** free-text path. Add **(Recommended)** to the label of your recommended option.
 
-## Output format
+### Previews (UI, layout, rendering, architecture)
 
-Save to `design.md` in the project root (or a `docs/` directory if one exists).
+For questions about visual output, UI layout, rendering, or architecture, you may use the `preview` field on each option with ASCII mockups or small diagrams. The preview updates as the author moves through choices.
 
-```markdown
-# Design: [Feature/System Name]
+- **All options or none:** If you use `preview`, **every** option must include a `preview` field. Otherwise the UI shows "No preview available" for gaps.
+- **Architecture:** Prefer small ASCII diagrams (e.g. `Client → API → DB` or layered boxes).
 
-## Architecture
+### ASCII alignment in previews
 
-[Description of overall structure]
+ASCII art in previews should line up cleanly in a monospace view.
 
-```mermaid
-[architecture diagram]
-```
+1. Write each preview to a temp file and run `LC_ALL=C awk '{ print length, $0 }' <file>` via Bash to compare line lengths within the preview.
+2. This is a **best-effort** check: `awk` counts **bytes**, not terminal display width. Unicode box-drawing characters (`┌─┐│└┘├┤┬┴┼`) count as multiple bytes, so border lines may show larger byte counts than text-only lines — that can be expected. What matters is consistency within **border** lines vs **content** lines; **visual proof in the preview still wins** if the tool UI looks misaligned.
+3. If Bash is unavailable, rely on careful manual alignment.
 
-## Data Model
+### Option descriptions (pros and cons)
 
-[Description of entities and relationships]
+Every option's `description` should include:
 
-```mermaid
-[entity-relationship or class diagram]
-```
+1. One line: what the option means  
+2. **Pros:** bullets, prefix with ✓ (use `+` if Unicode is mangled)  
+3. **Cons:** bullets, prefix with ✗ (use `-` if Unicode is mangled)
 
-## API Contracts
+Spell out tradeoffs even when one option seems obviously better — the author may have context you do not.
 
-[Endpoint definitions, request/response shapes, error codes]
+### Write the design document
 
-## Component Responsibilities
+After Q&A, write the final doc. It must be **self-contained** — a reader should not need the chat history. Prefer **[Mermaid](https://mermaid.js.org/)** for architecture, data flow, and sequence where helpful. Include component structure, data models, API or module contracts, and **rationale** for major decisions.
 
-[What each module/service owns and its boundaries]
+Keep the testing section very succinct unless the change is primarily about testing.
 
-## External Integrations
+Do **not** add these sections unless the author explicitly asks: generic design principles decks, requirements-style acceptance criteria (already in REQ), rollback strategy, migration plan, future enhancements/work backlog, references bibliography.
 
-[How each external system is called, retry strategy, failure handling]
+- If the user supplied a template or output path in the prompt, honor that.  
+- Otherwise create **`docs/ddd_design/DES_<descriptive_suffix>.md`** at the repo root (create `docs/ddd_design/` if needed).  
+- Tie the suffix to the same theme as the requirements file when practical.
 
-## Error Handling
+### Next step (`AskUserQuestion` + `Skill`)
 
-[Error taxonomy, propagation strategy, user-facing messages]
+After saving the doc, use `AskUserQuestion`:
 
-## Security
+- **Move to /ddd_cl** — continue to checklist  
+- **Revise design** — edit the doc from feedback  
+- **Done for now** — stop; author can resume later  
 
-[Auth model, authorization rules, data protection, input validation]
+**Act on the answer.** Do not ask the author to type the next slash command — the chosen option **is** the instruction.
 
-## Observability
+- **Move to /ddd_cl:** Immediately invoke the `ddd:ddd_cl` skill via the **`Skill`** tool, passing the **absolute or repo-relative path** to the design file you just wrote.  
+- **Revise design:** Apply feedback, update the file, re-confirm completeness.  
+- **Done for now:** Stop.
 
-[Logging strategy, key metrics, alerting thresholds]
-
-## Key Sequence Flows
-
-[Mermaid sequence diagrams for non-obvious paths]
-
-## Decision Log
-
-| Decision | Options Considered | Choice | Rationale |
-|---|---|---|---|
-```
-
-## Constraints
-
-- Keep the design **as simple as the requirements allow**. No speculative abstractions.
-- Ask one decision at a time. Do not batch decisions into a single question.
-- Do not write implementation code.
-- Every decision in the document must have a recorded rationale.
-- Diagrams must use valid Mermaid syntax.
+If `AskUserQuestion` or `Skill` is missing, stop and state that Claude Code with the DDD plugin is required to continue the chain — do not simulate the handoff in plain text unless the user explicitly asks for a manual copy-paste workflow.

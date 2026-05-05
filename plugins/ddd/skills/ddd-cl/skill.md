@@ -1,71 +1,51 @@
-# ddd-cl — Checklist
+---
+name: ddd_cl
+description: "Claude Code only: break an agreed design into dependency-ordered, review-sized tasks (needs AskUserQuestion + Skill tools). Use after /ddd_des; run before /ddd_imp."
+metadata:
+  author: Dmytro Paliichuk
+---
 
-Decompose an approved `design.md` into a granular, dependency-ordered list of implementable tasks, where each task targets a diff of 50–200 lines.
+# Checklist
 
-## When to use
+Decompose the design document into a granular, **dependency-ordered** list of tasks. Each task targets a **single coherent change** with an expected diff of **50–200 lines** — small enough to review confidently, large enough to be meaningful.
 
-Invoke `/ddd_cl` after `/ddd_des` has produced an approved `design.md`. Do not proceed to `/ddd_imp` until this phase is complete and the user has confirmed the checklist.
+**Environment:** This skill targets **Claude Code** with the **AskUserQuestion** and **Skill** tools (plugin workflow). If those tools are not available, stop and say this phase requires Claude Code with DDD plugin tools enabled — do not pretend the same UX in a plain chat.
+
+## When to Use
+
+- After `/ddd_des` has produced a design doc (design must be agreed before checklist)
+- Before running `/ddd_imp` — implementation follows the checklist order
 
 ## Instructions
 
-1. **Read `design.md` and `requirements.md`.** Understand the full scope before generating any tasks.
+When invoked, build the checklist from the **design document**. Its path is passed via the **`Skill`** tool when continuing from `/ddd_des`, or find it at **`docs/ddd_design/DES_*.md`** (or another path the author gave in the prompt).
 
-2. **Identify the implementation units.** Break the design into the smallest coherent changes that can be implemented, tested, and reviewed independently. Each unit should:
-   - Have a single clear purpose
-   - Target a diff of 50–200 lines (not a hard limit, but a strong guideline)
-   - Be verifiable — there is a concrete way to confirm it is done
+First, read the design doc. Then read the relevant parts of the codebase so tasks reflect what already exists — do not plan work for code that is already done.
 
-3. **Determine dependencies.** For each task, identify which other tasks must be complete before it can start. Tasks with no dependencies are the starting tasks.
+Tasks must be **clearly enumerated** so they are easy to reference. Each task should name the files it will create or modify.
 
-4. **Order the tasks.** Sequence them so that every task's dependencies appear before it in the list. Where multiple tasks are unblocked at the same time, order them by logical cohesion (e.g., schema before service before handler before test).
+Order tasks by **dependency** (what must land before what). Each task should be a **compilable**, commit-sized unit where possible. For large types or files: skeleton first in a buildable state, then helpers/utilities, then behavior that depends on those pieces.
 
-5. **Draft `checklist.md`.** Produce the document using the structure below. Present it to the user and ask for confirmation or corrections.
+**Sizing:** Aim for **50–200 lines of diff** per task. If a slice would be **under 50 lines**, merge it with the next dependent task. If it would exceed **200 lines**, split it (e.g. stubs/skeleton first, then implementations as follow-up tasks).
 
-6. **Iterate until approved.** Apply any corrections and re-present. Repeat until the user explicitly approves.
+Use these **status** values on each task: `not started`, `in progress`, `pending approval`, `completed`. Treat **`completed`** as **author-approved only** — see `/ddd_imp` for the approval gate.
 
-7. **Signal completion.** When approved, tell the user: "Checklist is complete. Run `/ddd_imp` to begin implementation."
+- If the user supplied a template or output path in the prompt, honor that.  
+- Otherwise create **`docs/ddd_checklist/CL_<descriptive_suffix>.md`** at the repo root (create `docs/ddd_checklist/` if needed).  
+- Align the suffix with the design/requirements naming when practical.
 
-## Output format
+### Next step (`AskUserQuestion` + `Skill`)
 
-Save to `checklist.md` in the project root (or a `docs/` directory if one exists).
+After saving the checklist, use `AskUserQuestion`:
 
-```markdown
-# Implementation Checklist: [Feature/System Name]
+- **Move to /ddd_imp** — start implementation  
+- **Revise checklist** — adjust breakdown, ordering, or sizing from feedback  
+- **Done for now** — stop; author can resume later  
 
-Each task is scoped to a single coherent change (target: 50–200 lines).
-Check off tasks as they are completed and approved.
+**Act on the answer.** Do not ask the author to type the next slash command — the chosen option **is** the instruction.
 
-## Tasks
+- **Move to /ddd_imp:** Immediately invoke the `ddd:ddd_imp` skill via the **`Skill`** tool, passing the **absolute or repo-relative path** to the checklist file you just wrote.  
+- **Revise checklist:** Apply feedback and re-confirm.  
+- **Done for now:** Stop.
 
-- [ ] **T01 · [Task title]**
-  - What: [One sentence describing what changes]
-  - Files: [List of files expected to change]
-  - Done when: [Concrete, testable completion criterion]
-  - Depends on: none
-
-- [ ] **T02 · [Task title]**
-  - What: [One sentence describing what changes]
-  - Files: [List of files expected to change]
-  - Done when: [Concrete, testable completion criterion]
-  - Depends on: T01
-
-- [ ] **T03 · [Task title]**
-  ...
-```
-
-## Sizing guidelines
-
-| Scenario | Guidance |
-|---|---|
-| Task is > 200 lines | Split into two or more tasks |
-| Task is < 20 lines | Consider merging with a related task unless it is a standalone config or schema change |
-| Task has more than 3 dependencies | Review whether a preceding task can be merged to reduce dependency depth |
-| Task cannot be verified | Rewrite the "Done when" criterion or split until it can be |
-
-## Constraints
-
-- Every task MUST have a "Done when" criterion that is concrete and testable.
-- Do not create tasks for documentation, comments, or code style unless they are part of the requirements.
-- Do not create a task for "write tests" in isolation — testing is part of the task it covers.
-- Do not write implementation code during this phase.
-- The checklist is the source of truth for `/ddd_imp`. It must be complete enough that implementation requires no further design decisions.
+If `AskUserQuestion` or `Skill` is missing, stop and state that Claude Code with the DDD plugin is required to continue the chain — do not simulate the handoff in plain text unless the user explicitly asks for a manual copy-paste workflow.

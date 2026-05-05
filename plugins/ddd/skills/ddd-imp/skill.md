@@ -1,54 +1,70 @@
-# ddd-imp — Implement
+---
+name: ddd_imp
+description: "Claude Code only: implement the next unblocked checklist task and pause for approval before starting another (needs AskUserQuestion). Use after /ddd_cl."
+metadata:
+  author: Dmytro Paliichuk
+---
 
-Execute the next unblocked task from `checklist.md`, implement it fully, then pause for user approval before proceeding to the next task.
+# Implement
 
-## When to use
+Pick the **next single unblocked** task from the checklist, implement it fully, update the checklist, then pause for review and approval before starting another task. **No new task begins until the current one is approved** — implementation stays mechanical execution of agreed design.
 
-Invoke `/ddd_imp` after `/ddd_cl` has produced an approved `checklist.md`. Re-invoke after each approval to continue with the next task.
+**Environment:** This skill targets **Claude Code** with the **AskUserQuestion** tool (plugin workflow). If it is not available, stop and say this phase requires Claude Code with DDD plugin tools enabled — do not pretend the same approval UX in a plain chat.
+
+## When to Use
+
+- After `/ddd_cl` has produced a checklist
+- To continue after the author approved the previous task
 
 ## Instructions
 
-1. **Read `checklist.md`.** Identify all tasks that are not yet checked off (`- [ ]`).
+When invoked, locate the checklist at the path passed via **`Skill`** from `/ddd_cl`, or at **`docs/ddd_checklist/CL_*.md`**, or another path the author gave. Also open the **`docs/ddd_design/DES_*.md`** design doc that matches this effort when you need architectural context.
 
-2. **Select the next task.** Choose the first unchecked task whose dependencies are all checked off. If multiple tasks are unblocked, pick the one with the lowest task number.
+Read the checklist and design, then read every file you intend to change **before** editing.
 
-3. **Announce the task.** Before writing any code, state:
-   - The task ID and title
-   - What you are about to change and why
-   - Which files will be affected
+### One task at a time
 
-4. **Implement the task.** Write the code changes required to satisfy the task's "Done when" criterion. Follow these rules:
-   - Stay strictly within the scope of the current task. Do not fix unrelated issues or add unrequested improvements.
-   - Match the project's existing code style, naming conventions, and patterns.
-   - Include tests if the task's "Done when" criterion requires verifiable behavior.
-   - Do not modify `checklist.md` yet.
+Select exactly **one** task that is:
 
-5. **Present a summary.** After implementation, provide:
-   - A brief description of what was changed
-   - How to verify the "Done when" criterion is met
-   - Any decisions made during implementation that deviate from the design, with justification
+- `not started` (or ready to resume if you left it `in progress` in the same session), and  
+- not blocked by any incomplete prerequisite task.
 
-6. **Pause for approval.** Ask the user: "Does this look good? Approve to continue to the next task, or give feedback to revise."
+Do **not** batch multiple independent tasks into one approval cycle unless the README-sized rule forces merging (see below).
 
-7. **On approval:**
-   - Mark the task as complete in `checklist.md` (change `- [ ]` to `- [x]`).
-   - Tell the user the next unblocked task (if any), or that all tasks are complete.
+**Status flow:**
 
-8. **On revision request:**
-   - Apply the requested changes.
-   - Re-present the summary and pause for approval again.
-   - Do not mark the task complete until approved.
+- Set **`in progress`** when you start work on the chosen task.  
+- Set **`pending approval`** when implementation for that task is ready for review.  
+- Set **`completed`** only after the author explicitly approves via **`AskUserQuestion`** (see below). Never mark **`completed`** preemptively.
 
-9. **On completion of all tasks:**
-   - Confirm all items in `checklist.md` are checked.
-   - Summarize what was built in two or three sentences.
-   - Suggest any follow-up actions (e.g., deploy, integration test, documentation update) if obvious.
+### Diff sizing vs checklist tasks
 
-## Constraints
+If the checklist already sized tasks to **50–200 lines**, implement **one checklist task** per pause. If finishing one task yields **under ~50 lines** of diff and the next task is unblocked and trivially related, you may **merge that execution into one pause** — but still update statuses per checklist row you finished.
 
-- **One task per invocation.** Never implement more than one task without an explicit approval in between.
-- Do not start a task whose dependencies are not yet checked off.
-- Do not modify files outside the scope declared in the task's "Files" field unless unavoidable, and if so, explain why.
-- Do not refactor, clean up, or improve code outside the current task's scope.
-- If a task's "Done when" criterion cannot be met as written (e.g., due to a missing dependency or design gap), stop and ask the user how to proceed rather than improvising.
-- Keep diffs within the 50–200 line target. If the implementation is growing beyond that, stop and propose splitting the task before continuing.
+If one checklist task would still exceed **200 lines**, split the **work** across pauses (e.g. stubs first, then fill-in) and reflect that in checklist rows or sub-bullets so review stays bounded.
+
+### Quality bar
+
+Add comments where they help future readers understand **why**, not what.
+
+Ensure the change **builds** and **tests pass** when the repo has a standard way to verify that.
+
+### Pause for approval (`AskUserQuestion`)
+
+After each implemented task (or merged small slice per sizing rule), use `AskUserQuestion`:
+
+- **Approved — next task** — mark the task **`completed`**, update the checklist file, then start the **next** unblocked task (still one primary task per cycle unless the under-50 merge rule applies).  
+- **Approved — stop here** — mark **`completed`**, update the checklist, stop.  
+- **Create PR** — create a branch. If the task depends on another task whose PR exists but is not merged, branch off that PR’s branch (stacked PR); if it depends on a locally completed task without a PR, branch off the current branch; otherwise branch off the default branch (e.g. `main`). Commit, push, open the PR, and record the PR link on the checklist. The task stays **`pending approval`**. After the PR is created, ask again with **Approved — next task**, **Approved — stop here**, and **Stop without approving**.  
+- **Stop without approving** — stop; leave the task **`pending approval`** (or **`in progress`** if work is incomplete).
+
+If the author responds with free-text instead of an option, treat it as **changes requested** — adjust implementation or checklist, then ask again.
+
+If **`AskUserQuestion`** is missing, stop and state that Claude Code with the DDD plugin is required — do not simulate approval in plain text unless the user explicitly asks for a manual workflow.
+
+### Approval scope
+
+Ask for approval for **production code** changes. Exceptions:
+
+1. **Whole-file deletions** — no separate approval gate solely for the deletion operation.  
+2. **Unit tests** and **documentation-only** edits — may ship in the same approval round as the task they support without a second gate **unless** the author asked otherwise.
