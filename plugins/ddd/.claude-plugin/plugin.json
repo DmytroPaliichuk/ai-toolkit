@@ -1,0 +1,8 @@
+{
+  "name": "ddd",
+  "description": "Document-Driven Development — write specification documents first, by following the next steps: requirements → design → checklist → implementation",
+  "version": "0.1.0",
+  "author": {
+    "name": "DmytroPaliichuk"
+  }
+}
