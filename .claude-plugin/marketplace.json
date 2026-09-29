@@ -6,13 +6,13 @@
     },
     "metadata": {
       "description": "AI assistant skills and plugins for developers",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     "plugins": [
       {
         "name": "ddd",
         "description": "Document-Driven Development — write specification documents first, by following the next steps: requirements → design → checklist → implementation",
-        "version": "0.1.0",
+        "version": "0.1.1",
         "author": {
           "name": "Dmytro Paliichuk",
           "email": "dmytro.paliichuk@gmail.com"
