@@ -81,6 +81,7 @@ After Q&A, write the final doc. It must be **self-contained** — a reader shoul
 
 - If the user supplied a template or output path in the prompt, honor that.  
 - Otherwise create **`docs/ddd_requirement/REQ_<descriptive_suffix>.md`** at the repo root (create `docs/ddd_requirement/` if needed).  
+- Start the file with YAML frontmatter containing a **`created`** field: the current local time in ISO 8601 with offset (e.g. `created: 2026-09-28T14:05:00+0300`). Get it by running `date +%Y-%m-%dT%H:%M:%S%z` via Bash — do not guess. Set it once when the file is first written; do not change it on revisions.  
 - Do not put implementation code in the doc; if needed, signatures or short pseudocode only.
 
 ### Next step (`AskUserQuestion` + `Skill`)
