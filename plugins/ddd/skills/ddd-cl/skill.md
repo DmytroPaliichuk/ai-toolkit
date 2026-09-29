@@ -32,6 +32,7 @@ Use these **status** values on each task: `not started`, `in progress`, `pending
 
 - If the user supplied a template or output path in the prompt, honor that.  
 - Otherwise create **`docs/ddd_checklist/CL_<descriptive_suffix>.md`** at the repo root (create `docs/ddd_checklist/` if needed).  
+- Start the file with YAML frontmatter containing a **`created`** field: the current local time in ISO 8601 with offset (e.g. `created: 2026-09-28T14:05:00+0300`). Get it by running `date +%Y-%m-%dT%H:%M:%S%z` via Bash — do not guess. Set it once when the file is first written; do not change it on revisions.  
 - Align the suffix with the design/requirements naming when practical.
 
 ### Next step (`AskUserQuestion` + `Skill`)
